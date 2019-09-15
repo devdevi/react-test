@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>React Testing</title>
+    <meta charset="utf-8" />
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(
+        https://fonts.googleapis.com/css?family=Droid+Serif:400,
+        700,
+        400italic
+      );
+      @import url(
+        https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,
+        700,
+        400italic
+      );
+
+      body {
+        font-family: "Droid Serif";
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: "Yanone Kaffeesatz";
+        font-weight: normal;
+      }
+      .remark-code,
+      .remark-inline-code {
+        font-family: "Ubuntu Mono";
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Test en React
+
+---
+
+# Agenda
+
+1. Introducción
+2. Motivación
+3. Herramientas
+4. Testeo de UI
+5. Testeo de instancias
+
+---
+
+# Introducion
+
+* Por qué testear aplicaciones en React?
+* Que diferencias hay entre testear Front versus backend?
+* Cuales son las aproximaciones al testing en React?
+
+---
+
+# Motivacion
+
+* la gracia de la programación frontend versus el backend
+* la necesidad de tener certezas:
+      * certeza de que los componentes funcionales visualizarán lo que tienen que visualizar
+      * certeza de que nuestros formularios procesaran la data que tienen que procesar
+      * certeza de que nuestros componentes se comportaran como esperamos frente a ciertos escenarios de interacción
+* la exagerada importancia visual de una aplicación
+* la subestimación de tareas que visualmente parecen triviales
+
+---
+
+# Herramientas.
+
+* Jest [https://jestjs.io/]()
+* Enzyme [https://airbnb.io/enzyme/]()
+
+---
+
+# Testeo de UI.
+
+* Shallow rendering
+      * tratamos a los componentes como una unidad
+      * evitamos testar comportamiento
+      * útil para testear que un componente cumpla con condiciones de rendering especifica
+* Full rendering
+      * ideal para componentes pesados
+      * útil en el caso de componentes que interactuan como muchas APIS
+      * si el componente esta envuelto en un Higher Order Component, también es útil
+      * podemos testear comportamiento
+
+---
+
+# Ejemplo usando Shallow
+
+```js
+describe("<Comp />", () => {
+  let sc;
+  test("Debe tener un h1", () => {
+    sc = shallow(<Comp name="Pepito" />);
+    console.log(sc.find("h1").text());
+    expect(sc.find("h1")).toHaveLength(1);
+  });
+});
+```
+
+---
+
+# Ejemplo usando Shallow
+
+Podemos hacer mas que verificar la existencia de estructura de marcado.
+También podemos probar sobre el contenido mismo
+
+```js
+test("Debe mostrar el nombre Pepito", () => {
+  const [name] = sc
+    .find("h1")
+    .text()
+    .split(" ")
+    .filter(item => item.toLowerCase().includes("pepito"));
+  expect(name).toBe("Pepito");
+});
+```
+
+---
+
+# Ejemplo usando Mount (Full rendering)
+
+Tenemos estos dos componentes.
+
+```js
+const Button = ({ text, classStyle }) => (
+  <button className={classStyle}>{text}</button>
+);
+
+const Parent = ({ style, data }) =>
+  data.map((_, idx) => (
+    <Button
+      key={`someKey${idx}`}
+      classStyle={style}
+      text={`Button number ${idx + 1}`}
+    />
+  ));
+```
+
+---
+
+# Testeamos que existan los tres subcomponentes
+
+```js
+test("Deberia renderear 3 botones", () => {
+  const a = [1, 2, 3];
+  mt = mount(<Parent style="funky-class" data={a} />);
+  const btns = mt.find("Button");
+  expect(btns).toHaveLength(3);
+});
+```
+
+---
+
+# Testeamos la existencia de las clases en los componentes
+
+```js
+test("Los tres botones deberian tener clase funky-class", () => {
+  const btns = mt.find("button");
+  btns.forEach(node => expect(node.hasClass("funky-class")).toBe(true));
+});
+```
+---
+
+# Tambien podemos testear instancias como tales.
+
+Supongamos el siguiente componente:
+
+```js
+  class Comp extends React.Component {
+    constructor() {
+      super();
+      this.state = {
+        users: [{ name: "pepito" }, { name: "juanito" }]
+      };
+    }
+    changeName(name, idx) {
+      const { users } = this.state;
+      users[idx].name = name;
+      this.setState({
+        ...this.state,
+        users: [...users]
+      });
+    }
+    render() {
+      const { users } = this.state;
+      const { title } = this.props;
+      return (
+        <div className="container">
+          <h3>{title}</h3>
+          {users.map(item => (
+            <p>{item.name}</p>
+          ))}
+        </div>
+      );
+    }
+  }
+```
+---
+
+ # Podemos testear tanto la vista
+
+ ```js
+ test("Deberia mostrar dos <p> y un <h1>", () => {
+  mt = mount(<Comp title="El component" />);
+  const ps = mt.find("p");
+  expect(ps).toHaveLength(2);
+});
+
+```
+
+---
+
+# Podemos testear tambien los métodos internos de la instancia 
+
+```js
+test("Deberia cambiar el nombre de uno de los itemes", () => {
+  mt.instance().changeName("marcelito", 1);
+  const {
+    state: { users }
+  } = mt.instance();
+  expect(users[1].name).toBe("marcelito");
+  mt.update();
+  expect(
+    mt
+      .find("p")
+      .at(1)
+      .text()
+  ).toBe("marcelito");
+});
+```
+
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
